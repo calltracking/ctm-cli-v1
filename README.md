@@ -42,18 +42,52 @@ ctm deploy
 ```
 
 
-# dependencies
+# Development
 
-python3 -m venv env
+Use an already-installed Python with `venv` and `pip`. The pinned
+[PyInstaller 5.10.1](https://pypi.org/project/pyinstaller/5.10.1/) requires
+Python >=3.7,<3.12; newer Python releases are not supported by this dependency
+set. No exact Python version is recorded in this repository, CI, or version
+files, so no speculative `.tool-versions` pin is supplied. Select a compatible
+interpreter explicitly (for example `PYTHON=/absolute/path/to/python3 bin/setup`).
+If using mise/asdf shims, disable automatic runtime installation before running
+these commands, or use an absolute path to an installed interpreter.
 
-./env/bin/pip3 -r requirements.txt
+| Command | Purpose |
+| --- | --- |
+| `bin/setup` | Create the existing `env/` virtualenv and install pinned requirements. |
+| `bin/update` | Repeat dependency sync after pulling; creates `env/` if absent. |
+| `bin/lint` | Check Python and developer shell script syntax without executing the CLI. |
+| `bin/doctor` | Read-only Python/dependency diagnostics; nonzero for missing or mismatched dependencies. |
+| `bin/build [PyInstaller options]` | Build local artifacts in `build/` and `dist/` using `ctm.spec`. |
 
-build installer
+Scripts locate this checkout independently of the caller's working directory.
+`PYTHON` selects the bootstrap interpreter only when `env/` does not exist;
+`bin/lint` also accepts it for dependency-free syntax checking. Setup/update
+install the versions in `requirements.txt` without upgrading pins, pulling Git,
+accessing CTM, or running migrations. They accept no arguments. Build forwards
+options to PyInstaller; it does not sign, upload, or publish artifacts. The
+existing spec describes the macOS build with `entitlements.plist`; building on
+other platforms has not been validated.
 
-Mac OSX installer
-```
-pyinstaller --onedir  ctm --osx-entitlements-file entitlements.plist
+There is no automated test suite or established formatter in this repository,
+so no `bin/test` is provided. Syntax checks do not replace functional tests.
+This repository owns a CLI, not a local app server or a release deployment
+workflow, so no `bin/run.sh` or `bin/deploy.sh` is added. The existing `ctm`
+interface is unchanged. To run it from source, activate this checkout's `env/`
+and invoke the absolute path to `ctm` from the project you intend to work on.
+`ctm verify` additionally requires Node.js on PATH for JavaScript projects and
+uses the installed `yamllint`; no tested Node.js version is recorded here.
+Commands that use CTM require network access and OS keyring support. Doctor
+never reads credentials or contacts CTM, and does not verify remote access.
+
+## Manual macOS signing
+
+After `bin/build`, the existing optional signing procedure is:
+
+```sh
 security find-identity -p basic -v
-codesign --deep --force --options=runtime --entitlements ./entitlements.plist --sign  656DA... --timestamp ./dist/ctm/ctm
+codesign --deep --force --options=runtime --entitlements ./entitlements.plist --sign YOUR_SIGNING_IDENTITY --timestamp ./dist/ctm/ctm
 ```
 
+Signing requires your own identity and is deliberately separate from the build.

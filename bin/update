@@ -1,0 +1,15 @@
+#!/bin/sh
+set -eu
+root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+cd "$root"
+if [ "$#" -ne 0 ]; then
+    echo 'Usage: bin/update (or bin/setup); set PYTHON to select an installed interpreter.' >&2
+    exit 2
+fi
+if [ ! -x env/bin/python ]; then
+    python=${PYTHON:-python3}
+    "$python" -c 'import sys; sys.exit(0 if (3, 7) <= sys.version_info[:2] < (3, 12) else "Pinned PyInstaller requires Python >=3.7,<3.12")'
+    "$python" -m venv env
+fi
+env/bin/python -c 'import sys; sys.exit(0 if (3, 7) <= sys.version_info[:2] < (3, 12) else "Pinned PyInstaller requires Python >=3.7,<3.12; recreate env with a compatible interpreter")'
+exec env/bin/python -m pip install -r requirements.txt
