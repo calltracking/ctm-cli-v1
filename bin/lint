@@ -1,0 +1,23 @@
+#!/bin/sh
+set -eu
+root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+cd "$root"
+if [ "$#" -ne 0 ]; then
+    echo 'Usage: bin/lint' >&2
+    exit 2
+fi
+python=${PYTHON:-"$root/env/bin/python"}
+if ! command -v "$python" >/dev/null 2>&1; then
+    echo 'Run bin/setup first, or set PYTHON to an installed interpreter.' >&2
+    exit 1
+fi
+# Compile without importing the CLI, touching credentials, or writing bytecode.
+"$python" - <<'PY'
+from pathlib import Path
+for name in ('ctm', 'ctm.spec'):
+    compile(Path(name).read_bytes(), name, 'exec')
+print('Python syntax OK')
+PY
+for script in bin/*; do
+    sh -n "$script"
+done
